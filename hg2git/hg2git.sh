@@ -66,6 +66,7 @@ for i in tools csg csg-manual csgapps csg-tutorials; do
   hg="${i}.hg"
   git="${i}.git"
   [[ -d $hg ]] || hg clone "https://code.google.com/p/votca.$i/" "$hg"
+  hg incoming -R "$hg" || continue
   hg pull -R "$hg" -u
   [[ -d $git ]] || git init "$git"
   pushd $git
