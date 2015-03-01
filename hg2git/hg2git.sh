@@ -70,11 +70,12 @@ for i in tools csg csg-manual csgapps csg-tutorials; do
   hg pull -R "$hg" -u
   [[ -d $git ]] || git init "$git"
   pushd $git
-  $hg_fast_export -r ../$hg -A "$authors"
+  $hg_fast_export -r ../$hg -A "$authors" --hgtags
   [[ $clean = no ]] || git gc --aggressive --prune=all
   git log | grep "^Author:" | sort -u > ../${git}.authors
   git_big_files > ../${git}.big_files
   [[ $push = no ]] || git push --all
+  [[ $push = no ]] || git push --tags
   popd
   [[ $clean = yes ]] || continue
   git2=${i}.clean.git
