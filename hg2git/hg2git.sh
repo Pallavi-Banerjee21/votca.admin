@@ -7,6 +7,8 @@
 # #min  hour  day  month  dow  user  command
 # 15,45  *     *    *      *    . $HOME/.bashrc; $HOME/votca/src/admin/hg2git/hg2git.sh --push $HOME/votca/src/hg2git >~/.votca_hg2git 2>&1
 
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" "$@" || :
+
 # before enabling --push, so something like
 # git remote add origin git@github.com:votca/csgapps.git
 die() {
@@ -62,11 +64,12 @@ git_big_files(){
   IFS="$old_IFS"
 }
 
-for i in tools csg csg-manual csgapps csg-tutorials; do
+for i in *.hg; do
+  i="${i%.hg}"
   hg="${i}.hg"
   git="${i}.git"
   [[ -d $hg ]] || hg clone "https://code.google.com/p/votca.$i/" "$hg"
-  hg incoming -R "$hg" || continue
+  [[ ! -f ${git}.authors || ! -f ${git}.big_files ]] || hg incoming -R "$hg" || continue
   hg pull -R "$hg" -u
   [[ -d $git ]] || git init "$git"
   pushd $git
