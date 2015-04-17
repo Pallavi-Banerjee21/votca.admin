@@ -7,7 +7,7 @@
 # #min  hour  day  month  dow  user  command
 # 15,45  *     *    *      *    . $HOME/.bashrc; $HOME/votca/src/admin/hg2git/hg2git.sh --push $HOME/votca/src/hg2git >~/.votca_hg2git 2>&1
 
-[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" "$@" || :
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" "$@" || true
 
 # before enabling --push, so something like
 # git remote add origin git@github.com:votca/csgapps.git

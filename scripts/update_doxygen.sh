@@ -13,6 +13,8 @@ sim=75
 author="Doxygen builder <devs@votca.org>"
 msg="Documentation update"
 
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock -en "$0" "$0" "$@" || true
+
 die () {
   echo -e "$*"
   exit 1
