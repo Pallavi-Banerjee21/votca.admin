@@ -112,9 +112,12 @@ if [[ -d $build ]]; then
   [[ $clean = yes ]] || die "$build is already there, run 'rm -rf $PWD/$build' or add --clean"
   rm -vrf $PWD/$build
 fi
+
+#release 1.0 - 1.2 had a pristine tarball
+[[ rel = 1.[012]* ]] && tools_pristine=tools_pristine
 #order matters for deps
 #and pristine before non-pristine to 'overwrite less components by more components'
-for p in tools_pristine $what; do
+for p in ${tools_pristine} $what; do
   [[ -z ${p%%*_pristine} ]] && dist="dist-pristine" || dist="dist"
   prog="${p%_pristine}"
   ./buildutil/build.sh \
@@ -164,19 +167,21 @@ cd $build
 
 echo "Starting build check from tarball"
 
-r=""
-for i in ../votca-tools-$rel*_pristine.tar.gz; do
-  [[ -f $i ]] || die "Could not find $i"
-  [[ -n $r ]] && die "There are two file matching votca-tools-$rel*_pristine.tar.gz"
-  cp $i .
-  [[ $testing = "yes" ]] || cp $i ../downloads
-  [[ $i =~ ../votca-tools-(.*_pristine).tar.gz ]] && r="${BASH_REMATCH[1]}"
-done
-[[ -z $r ]] && die "Could not fetch rel"
-../buildutil/build.sh \
-  --no-wait --prefix $PWD/../$instdir --no-relcheck --release $r \
-  -DEXTERNAL_BOOST=ON --selfdownload "${cmake_opts[@]}" tools
-rm -rf *
+if [[ rel = 1.[012]* ]]; then
+  r=""
+  for i in ../votca-tools-$rel*_pristine.tar.gz; do
+    [[ -f $i ]] || die "Could not find $i"
+    [[ -n $r ]] && die "There are two file matching votca-tools-$rel*_pristine.tar.gz"
+    cp $i .
+    [[ $testing = "yes" ]] || cp $i ../downloads
+    [[ $i =~ ../votca-tools-(.*_pristine).tar.gz ]] && r="${BASH_REMATCH[1]}"
+  done
+  [[ -z $r ]] && die "Could not fetch rel"
+  ../buildutil/build.sh \
+    --no-wait --prefix $PWD/../$instdir --no-relcheck --release $r \
+    -DEXTERNAL_BOOST=ON --selfdownload "${cmake_opts[@]}" tools
+  rm -rf *
+fi
 
 for p in $what; do
   [[ $p = *pristine ]] && die "Edit ${0##*/} as there are multiple pristine tarballs"
