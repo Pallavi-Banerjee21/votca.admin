@@ -50,9 +50,9 @@ git_big_files(){
   output="size,pack,SHA,location"
   for y in $objects; do
     # extract the size in bytes
-    size=$((`echo $y | cut -f 5 -d ' '`/1024))
+    size=$(( $(echo $y | awk '{print $3}') / 1024))
     # extract the compressed size in bytes
-    compressedSize=$((`echo $y | cut -f 6 -d ' '`/1024))
+    compressedSize=$(( $(echo $y | awk '{print $4}') / 1024))
     # extract the SHA
     sha=`echo $y | cut -f 1 -d ' '`
     # find the objects location in the repository tree
@@ -76,7 +76,8 @@ for i in *.hg; do
   $hg_fast_export -r ../$hg -A "$authors" --hgtags
   [[ $clean = no ]] || git gc --aggressive --prune=all
   git log | grep "^Author:" | sort -u > ../${git}.authors
-  git_big_files > ../${git}.big_files
+  echo "$git" > ../${git}.big_files
+  git_big_files >> ../${git}.big_files
   [[ $push = no ]] || git push --all
   [[ $push = no ]] || git push --tags
   popd
@@ -89,8 +90,10 @@ for i in *.hg; do
   git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
   git reflog expire --expire=now --all
   git gc --aggressive --prune=all
-  git_big_files > ../${git2}.big_files
+  echo $git2 > ../${git2}.big_files
+  git_big_files >> ../${git2}.big_files
   popd
   du -sh $git $git2 > ${git}.size
 done
 cat *.git.authors | sort -u > git.authors
+cat *.git.big_files > git.big_files
