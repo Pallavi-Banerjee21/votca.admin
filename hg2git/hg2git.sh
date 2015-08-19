@@ -102,8 +102,8 @@ for i in *.hg; do
      git tag -d $t
      [[ $push = no ]] || git push origin :refs/tags/$t || true
   done
-  [[ $push = no ]] || git push --all
-  [[ $push = no ]] || git push --tags
+  [[ $push = no ]] || git push -f --all
+  [[ $push = no ]] || git push -f --tags
   echo $git2 > ../${git2}.big_files
   git_big_files >> ../${git2}.big_files
   git tag -l | sort -u > ../${git2}.tags
