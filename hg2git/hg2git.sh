@@ -33,7 +33,7 @@ hg_fast_export=$(type -p hg-fast-export) || die "Could not find hg-fast-export"
 
 cd "$1"
 
-cfiles="config/libtool.m4 config/ltmain.sh netbeans/csg_reupdate/dist/Debug/GNU-Linux-x86/csg_reupdate src/libcsg/libcsg.a src/tools/csg_reupdate"
+cfiles="config/libtool.m4 config/ltmain.sh netbeans/csg_reupdate/dist/Debug/GNU-Linux-x86/csg_reupdate src/libcsg/libcsg.a src/tools/csg_reupdate src/tools/ctp_map_exp src/libkmc/libvotca_kmc.so src/libkmc/calculators/kmcmultiple.h.gch src/tools/ctp_run2 src/libkmc/libvotca_kmc.so.orig src/libkmc/calculators/.nfs0000000000b6eabb0000004c src/libkmc/calculators/kmcstandalone.exe src/libboost/config/libtool.m4 src/libboost/config/ltmain.sh src/tools/votca_property config/ltoptions.m4 CMakeCache.txt src/tools/ctp_test config/lt~obsolete.m4 config/ltsugar.m4 src/libexpat/config/libtool.m4 src/libexpat/config/ltmain.sh"
 
 git_big_files(){
   [[ -d .git ]] || die "Not a git repo"
@@ -44,7 +44,7 @@ git_big_files(){
   old_IFS="$IFS"
   IFS=$'\n'
   # list all objects including their size, sort by size, take top 10
-  objects=`git verify-pack -v .git/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head`
+  objects=`git verify-pack -v .git/objects/pack/pack-*.idx | grep -v chain | grep -v "^non.delta" | sort -k3nr | head -25`
 
   echo "All sizes are in kB's. The pack column is the size of the object, compressed, inside the pack file."
   output="size,pack,SHA,location"
@@ -69,31 +69,52 @@ for i in *.hg; do
   hg="${i}.hg"
   git="${i}.git"
   [[ -d $hg ]] || hg clone "https://code.google.com/p/votca.$i/" "$hg"
-  [[ ! -f ${git}.authors || ! -f ${git}.big_files ]] || hg incoming -R "$hg" || continue
+  [[ ! -f ${git}.authors || ! -f ${git}.big_files || ! -f ${git}.tags ]] \
+	  || hg incoming -R "$hg" || continue
   hg pull -R "$hg" -u
   [[ -d $git ]] || git init "$git"
   pushd $git
   $hg_fast_export -r ../$hg -A "$authors" --hgtags
   [[ $clean = no ]] || git gc --aggressive --prune=all
   git log | grep "^Author:" | sort -u > ../${git}.authors
+  git tag -l | sort -u > ../${git}.tags
   echo "$git" > ../${git}.big_files
   git_big_files >> ../${git}.big_files
-  [[ $push = no ]] || git push --all
-  [[ $push = no ]] || git push --tags
+  if [[ $push = yes && $clean = no ]]; then
+    git push --all
+    git push --tags
+  fi
   popd
   [[ $clean = yes ]] || continue
-  git2=${i}.clean.git
+  git2=${i}.cgit
   [[ -d $git2 ]] && rm -rf $git2
   git clone $git $git2
   pushd $git2
   [[ -n $cfiles ]] && git filter-branch --index-filter "git rm --cached --ignore-unmatch $cfiles" -- --all
-  git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
+  [[ -z $(git for-each-ref --format="%(refname)" refs/original/) ]] || \
+    git for-each-ref --format="%(refname)" refs/original/ | xargs -n 1 git update-ref -d
   git reflog expire --expire=now --all
   git gc --aggressive --prune=all
+  git remote set-url origin "git@github.com:votca/$git"
+  for t in $(git tag -l); do
+     [[ $t = release_* ]] || continue
+     git tag v${t#release_} $t
+     git tag -d $t
+     [[ $push = no ]] || git push origin :refs/tags/$t || true
+  done
+  [[ $push = no ]] || git push --all
+  [[ $push = no ]] || git push --tags
   echo $git2 > ../${git2}.big_files
   git_big_files >> ../${git2}.big_files
+  git tag -l | sort -u > ../${git2}.tags
   popd
-  du -sh $git $git2 > ${git}.size
+  du -sh $git/.git $git2/.git > ${git}.size
 done
 cat *.git.authors | sort -u > git.authors
+cat *.git.tags | sort -u > git.tags
 cat *.git.big_files > git.big_files
+if [[ $clean = yes ]]; then
+  cat *.cgit.tags | sort -u > cgit.tags
+  cat *.cgit.big_files > cgit.big_files
+  cat *.git.size > cgit.size
+fi
