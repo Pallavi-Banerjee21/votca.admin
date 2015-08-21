@@ -100,8 +100,8 @@ for i in *.hg; do
      [[ $t = release_* ]] || continue
      git tag v${t#release_} $t
      git tag -d $t
-     [[ $push = no ]] || git push origin :refs/tags/$t || true
   done
+  [[ $push = no ]] || git ls-remote --tags origin | awk '($2 ~ /refs\/tags\/release/){print ":" $2}' | xargs -r git push origin
   [[ $push = no ]] || git push -f --all
   [[ $push = no ]] || git push -f --tags
   echo $git2 > ../${git2}.big_files
